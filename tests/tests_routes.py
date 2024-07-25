@@ -1,3 +1,4 @@
+import logging
 import unittest
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -16,22 +17,26 @@ class TestAuth(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        # self.app.testing = True
 
         # Create a test user
         self.test_user = User(username='testuser', email='testuser@example.com')
         self.test_user.set_password('testpassword')
         db.session.add(self.test_user)
         db.session.commit()
+        logging.debug(f'Creating user: {self.test_user.username}')
         
         self.access_token = create_access_token(identity={'id': self.test_user.id})
 
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
 
     def test_register(self):
         response = self.client.post('/user/register', json={
-            'username': '3uniqueuser',
-            'email': 'uniqueuser@example.com',
-            'password': 'uniquepassword'
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'newpassword'
         })
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
@@ -39,8 +44,8 @@ class TestAuth(unittest.TestCase):
 
     def test_login(self):
         response = self.client.post('/user/login', json={
-            'username': 'test_user',
-            'password': 'test_password'
+            'username': 'testuser',
+            'password': 'testpassword'
         })
         self.assertEqual(response.status_code, 200)
         self.assertIn('access_token', response.json)
@@ -62,8 +67,6 @@ class TestExpense(unittest.TestCase):
         self.app_context=self.app.app_context()
         self.app_context.push()
         db.create_all()
-        # self.app = app.test_client()
-        # self.app.testing = True
 
         # Create a test user
         self.test_user = User(username='testuser', email='testuser@example.com')
