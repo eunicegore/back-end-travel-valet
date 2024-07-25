@@ -17,7 +17,6 @@ class TestAuth(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        # self.app.testing = True
 
         # Create a test user
         self.test_user = User(username='testuser', email='testuser@example.com')
@@ -68,8 +67,6 @@ class TestExpense(unittest.TestCase):
         self.app_context=self.app.app_context()
         self.app_context.push()
         db.create_all()
-        # self.app = app.test_client()
-        # self.app.testing = True
 
         # Create a test user
         self.test_user = User(username='testuser', email='testuser@example.com')
