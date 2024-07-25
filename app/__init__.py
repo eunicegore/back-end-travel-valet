@@ -20,9 +20,18 @@ load_dotenv()
 def create_app(test_config=None):
     app = Flask(__name__)
     CORS(app)  # Allow cross-origin requests
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-                "SQLALCHEMY_DATABASE_URI")
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    if not test_config:
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+            "SQLALCHEMY_DATABASE_URI")
+    else:
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+            "SQLALCHEMY_TEST_DATABASE_URI")
+
+    # app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    #             "SQLALCHEMY_DATABASE_URI")
+    # app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')  # Change this to a random JWT secret key
     from app.models.user import User
     from app.models.expense import Expense
