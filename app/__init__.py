@@ -1,16 +1,12 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask_login import LoginManager
+from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, decode_token
-
-from app.routes.packing_list_routes import packing_list_bp
 
 
 db=SQLAlchemy()
@@ -22,6 +18,7 @@ load_dotenv()
 def create_app(test_config=None):
     app = Flask(__name__)
     CORS(app)  # Allow cross-origin requests
+
     if not test_config:
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
@@ -35,25 +32,23 @@ def create_app(test_config=None):
     #             "SQLALCHEMY_DATABASE_URI")
     # app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')  # Change this to a random JWT secret key
-    from app.models.user import User
-    from app.models.expense import Expense
-    from app.models.packing_list import PackingList
+
 
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app)
 
-    from .routes import auth
+    from app.routes.auth_routes import auth
     app.register_blueprint(auth)
-
-    from .routes import expense
+    
+    from app.routes.expense_routes import expense
     app.register_blueprint(expense)
 
-    from .routes import packing_list_routes
-    app.register_blueprint(packing_list_routes.packing_list_bp)
+    from app.routes.packing_list_routes import packing_list_bp
+    app.register_blueprint(packing_list_bp)
 
-   
+    
     return app
 
 

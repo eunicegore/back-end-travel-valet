@@ -1,6 +1,6 @@
 import logging
-from flask import Blueprint, request, jsonify
 from app import db
+from flask import Blueprint, request, jsonify, current_app
 from app.models.packing_list import PackingList
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -64,9 +64,33 @@ def update_item(id):
     item = PackingList.query.get_or_404(id)
     
     if item.user_id != current_user:
+        current_app.logger.error(f'Unauthorized attempt to update item {id} by user {current_user}')
         return jsonify({'message': 'Unauthorized'}), 403
     
-    item.item_name = data.get('item name', item.item_name)
-    item.is_packed = data.get('is_packed', item.is_packed)
-    db.session.commit()
-    return jsonify({'message': 'Item updated'}), 200
+    item_name = data.get('item_name')
+    is_packed = data.get('is_packed')
+
+    if item_name is not None:
+        item.item_name = item_name
+    if is_packed is not None:
+        item.is_packed = is_packed
+    
+    try:
+        db.session.commit()
+        current_app.logger.debug(f'Item {id} updated successfully to: {item.to_dict()}')
+        return jsonify({'message': 'Item updated'}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error updating item {id}: {e}')
+        return jsonify({'message': 'Error updating item'}), 500
+
+
+    
+    # logging.debug(f'Updating item {id} with data: {data}')
+    
+    # item.item_name = data.get('item name', item.item_name)
+    # item.is_packed = data.get('is_packed', item.is_packed)
+    # db.session.commit()
+
+    # logging.debug(f'Item {id} update to: {item.to_dict()}')
+    # return jsonify({'message': 'Item updated'}), 200app.logger.error(f'Unauthorized attempt to update item {id} by user {current_user}')

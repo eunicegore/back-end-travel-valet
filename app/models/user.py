@@ -10,7 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(100), nullable=True)
 
     # Defines one-to-many relationship to PackingList model:
-    packing_lists = db.relationship('PackingList', back_populates='user')
+    packing_lists = db.relationship('PackingList', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -18,12 +18,10 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password, password)
 
-    # def to_dict(self):
+    def to_dict(self):
  
-    #     return {
-    #         "id": self.id,
-    #         "name": self.username,
-    #         "email": self.email,
-    #         "password": self.password
-            
-    #     }
+        return {
+            "id": self.id,
+            "name": self.username,
+            "email": self.email          
+        }

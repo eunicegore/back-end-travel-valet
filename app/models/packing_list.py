@@ -5,15 +5,12 @@ class PackingList(db.Model):
     item_name = db.Column(db.String(100), nullable=False)
     is_packed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', back_populates='packing_list')
 
 # Converts PackingList instance into a dictionary:
 # Helps with serialization to send data as JSON in API responses.
-
-def to_dict(self):
-    return {
-        'id': self.id,
-        'item_name': self.item_name,
-        'is_packed': self.is_packed,
-        'user_id': self.user_id
-    }
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'item_name': self.item_name,
+            'is_packed': self.is_packed,
+        }
