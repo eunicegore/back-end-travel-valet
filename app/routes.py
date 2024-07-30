@@ -44,9 +44,9 @@
 
 #     user = User.query.filter_by(username=username).first()
 
-    if user and user.check_password(password):
-        access_token = create_access_token(identity={'id':user.id})
-        return jsonify(access_token=access_token, user=username), 200
+    # if user and user.check_password(password):
+    #     access_token = create_access_token(identity={'id':user.id})
+    #     return jsonify(access_token=access_token, user=username), 200
 
 #     return jsonify({"message": "Invalid credentials"}), 401
 
@@ -91,26 +91,26 @@
 #         db.session.commit()
         
         # return jsonify({"message": "Expense added successfully"}), 201
-        return jsonify(new_expense.to_dict()), 201
+        # return jsonify(new_expense.to_dict()), 201
     
 #     except Exception as e:
 #         db.session.rollback()
 #         return jsonify({"msg": str(e)}), 500
 
 
-@expense.route('', methods=['GET'])
-@jwt_required()
-def get_expenses():
-    current_user = get_jwt_identity().get('id')
-    expenses = Expense.query.filter_by(user_id=current_user).order_by(Expense.date.desc()).all()
-    # expenses = Expense.query.filter_by(user_id=current_user).all()
-    return jsonify([{
-        'id': expense.id,
-        'amount': expense.amount,
-        'description': expense.description,
-        'category': expense.category,
-        'date': expense.date
-    } for expense in expenses])
+# @expense.route('', methods=['GET'])
+# @jwt_required()
+# def get_expenses():
+#     current_user = get_jwt_identity().get('id')
+#     expenses = Expense.query.filter_by(user_id=current_user).order_by(Expense.date.desc()).all()
+#     # expenses = Expense.query.filter_by(user_id=current_user).all()
+#     return jsonify([{
+#         'id': expense.id,
+#         'amount': expense.amount,
+#         'description': expense.description,
+#         'category': expense.category,
+#         'date': expense.date
+#     } for expense in expenses])
 
 # @expense.route('/<id>', methods=['DELETE'])
 # @jwt_required()
@@ -124,20 +124,20 @@ def get_expenses():
 #     return jsonify({'message': 'Expense deleted!'})
 
 
-@expense.route('/<id>', methods=['PUT'])
-@jwt_required()
-def update_expense(id):
-    current_user = get_jwt_identity().get('id')
-    data = request.json
-    expense = Expense.query.get_or_404(id)
-    if expense.user_id != current_user:
-        return jsonify({'message': 'Unauthorized'}), 403
-    expense.amount = data['amount']
-    expense.description = data['description']
-    expense.category = data['category']
-    expense.date = data['date'] 
-    db.session.commit()
-    return jsonify({'message': 'Expense updated!'})
-    # return jsonify(expense.to_dict()), 201
+# @expense.route('/<id>', methods=['PUT'])
+# @jwt_required()
+# def update_expense(id):
+#     current_user = get_jwt_identity().get('id')
+#     data = request.json
+#     expense = Expense.query.get_or_404(id)
+#     if expense.user_id != current_user:
+#         return jsonify({'message': 'Unauthorized'}), 403
+#     expense.amount = data['amount']
+#     expense.description = data['description']
+#     expense.category = data['category']
+#     expense.date = data['date'] 
+#     db.session.commit()
+#     return jsonify({'message': 'Expense updated!'})
+#     # return jsonify(expense.to_dict()), 201
 
 

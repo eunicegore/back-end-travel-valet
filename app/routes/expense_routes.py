@@ -38,7 +38,8 @@ def add_expense():
         db.session.add(new_expense)
         db.session.commit()
         
-        return jsonify({"message": "Expense added successfully"}), 201
+        # return jsonify({"message": "Expense added successfully"}), 201
+        return jsonify(new_expense.to_dict()), 201
     
     except Exception as e:
         db.session.rollback()
@@ -49,7 +50,7 @@ def add_expense():
 @jwt_required()
 def get_expenses():
     current_user = get_jwt_identity().get('id')
-    expenses = Expense.query.filter_by(user_id=current_user).all()
+    expenses = Expense.query.filter_by(user_id=current_user).order_by(Expense.date.desc()).all()
     return jsonify([{
         'id': expense.id,
         'amount': expense.amount,
@@ -84,5 +85,6 @@ def update_expense(id):
     expense.date = data['date']
     db.session.commit()
     return jsonify({'message': 'Expense updated!'})
+    # return jsonify(expense.to_dict()), 201
 
 
