@@ -2,15 +2,16 @@ from app import db
 
 class PackingList(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    item_name = db.Column(db.String(100), nullable=False)
-    is_packed = db.Column(db.Boolean, default=False)
+    list_name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    items = db.relationship('PackingListItem', backref='packing_list', lazy=True, cascade='all, delete-orphan')
 
 # Converts PackingList instance into a dictionary:
 # Helps with serialization to send data as JSON in API responses.
     def to_dict(self):
         return {
             'id': self.id,
-            'item_name': self.item_name,
-            'is_packed': self.is_packed,
+            'list_name': self.list_name,
+            'items': [item.to_dict() for item in self.items]
         }
