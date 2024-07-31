@@ -9,14 +9,14 @@ class Expense(db.Model):
     # user = db.relationship("User", back_populates="expenses")
     category=db.Column(db.String(100), nullable=False)
 
-    # def to_dict(self):
+    def to_dict(self):
  
-    #     return {
-    #         "id": self.id,
-    #         "amount": self.amount,
-    #         "description": self.description,
-    #         "user_id": self.user_id,
-    #         "date": self.date,
-    #         "category": self.category
+        return {
+            "id": self.id,
+            "amount": self.amount,
+            "description": self.description,
+            "user_id": self.user_id,
+            "date": self.date.strftime('%b/%d/%y'),
+            "category": self.category
             
-    #     }
+        }
