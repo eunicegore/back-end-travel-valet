@@ -5,7 +5,7 @@ from app.models.packing_list import PackingList
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # Defines new flask blueprint:
-packing_list_bp = Blueprint('packing_list', __name__, url_prefix='/packing_list')
+packing_list_bp = Blueprint('packing_list', __name__, url_prefix='/packing-list')
 
 # Route to Add an Item:
 @packing_list_bp.route('', methods=['POST'])
@@ -16,7 +16,6 @@ def add_item():
 
     if not item_name:
         return jsonify({'message': 'Item name is required'}), 400
-    
 
     try:
         current_user = get_jwt_identity().get('id')
