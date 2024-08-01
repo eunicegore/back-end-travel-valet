@@ -1,9 +1,8 @@
-import logging
 from app import db
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.packing_list import PackingList
 from app.models.packing_list_item import PackingListItem
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # Defines new flask blueprint:
 packing_list_bp = Blueprint('packing_list', __name__, url_prefix='/packing-list')
@@ -25,16 +24,17 @@ def create_list():
         db.session.add(new_list)
         db.session.flush()  # Use flush to get the id for the new list
 
-        # Create PackingListItem objects 
+        # Create PackingListItem objects
         items = [
             PackingListItem(
                 item_name=item['item_name'],
                 quantity=item.get('quantity', 1),
                 packed_quantity=item.get('packed_quantity', 0),
+                is_packed=item.get('is_packed', False),
                 packing_list_id=new_list.id
             ) for item in items_data
         ]
-        db.session.add(items)
+        db.session.add_all(items)
         db.session.commit()
 
         return jsonify({'message': 'New packing list created', 'packing_list': new_list.to_dict()}), 201
@@ -49,6 +49,10 @@ def create_list():
 def get_lists():
     current_user = get_jwt_identity().get('id')
     lists = PackingList.query.filter_by(user_id=current_user).all()
+
+    if not lists:
+        return jsonify({'message': 'No packing lists found'}), 404
+
     return jsonify([packing_list.to_dict() for packing_list in lists]), 200
 
 
@@ -84,42 +88,82 @@ def update_list(id):
     if list_name is not None:
         packing_list.list_name = list_name
 
-    # Update items in packing list:
-    for item_data in items_data:
-        item_id = item_data.get('id')
-        item_name = item_data.get('item_name')
-        is_packed = item_data.get('is_packed')
-        quantity = item_data.get('quantity')
-        packed_quantity = item_data.get('packed_quantity')
+    try:
+        # Update items in packing list:
+        for item_data in items_data:
+            item_id = item_data.get('id')
+            item_name = item_data.get('item_name')
+            quantity = item_data.get('quantity')
+            packed_quantity = item_data.get('packed_quantity')
+            is_packed = item_data.get('is_packed')
 
-        # Update existing item:
-        if item_id:
-            item = PackingListItem.query.get_or_404(item_id)
+            # Update existing item:
+            if item_id:
+                item = PackingListItem.query.get_or_404(item_id)
 
-            if item.packing_list_id != packing_list.id:
-                return jsonify({'message': 'Item does not belong to this list'}), 400
-            if item_name is not None:
-                item.item_name = item_name
-            if is_packed is not None:
-                item.is_packed = is_packed
-            if quantity is not None:
-                item.quantity = quantity
-            if item.packed_quantity is not None:
-                item.packed_quantity = packed_quantity
-        else:
-            new_item = PackingListItem(
-                item_name=item_name,
-                is_packed=is_packed,
-                quantity=quantity,
-                packed_quantity=packed_quantity,
-                packing_list_id=packing_list.id
-            )
-            db.session.add(new_item)
+                if item.packing_list_id != packing_list.id:
+                    return jsonify({'message': 'Item does not belong to this list'}), 400
+                if item_name is not None:
+                    item.item_name = item_name
+                if is_packed is not None:
+                    item.is_packed = is_packed
+                if quantity is not None:
+                    item.quantity = quantity
+                if item.packed_quantity is not None:
+                    item.packed_quantity = packed_quantity
+            else:
+                new_item = PackingListItem(
+                    item_name=item_name,
+                    quantity=quantity,
+                    packed_quantity=packed_quantity,
+                    is_packed=is_packed,
+                    packing_list_id=packing_list.id
+                )
+                db.session.add(new_item)
         
-        try:
-            db.session.commit()
-            return jsonify({'message': 'Packing list updated', 'packing_list': packing_list.to_dict()}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'message': 'Error updating packing list'}), 500
+        db.session.commit()
+        return jsonify({'message': 'Packing list updated', 'packing_list': packing_list.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error updating packing list'}), 500
+
+
+# Route to Get a packing list by ID:
+@packing_list_bp.route('/<int:id>', methods=['GET'])
+@jwt_required()
+def get_list_by_id(id):
+    current_user = get_jwt_identity().get('id')
+    packing_list = PackingList.query.get(id)
+
+    if packing_list is None:
+        return jsonify({'message': 'Packing list not found'}), 404
+
+    if packing_list.user_id != current_user:
+        return jsonify({'message': 'Unauthorized'}), 403
+    
+    return jsonify(packing_list.to_dict()), 200
         
+
+# Route to delete an item from a packing list:
+@packing_list_bp.route('/items/<int:item_id>', methods=['DELETE'])
+@jwt_required()
+def delete_item(item_id):
+    current_user = get_jwt_identity().get('id')
+    item = PackingListItem.query.get_or_404(item_id)
+
+    # Check if the item belongs to the current user:
+    if item.packing_list.user_id != current_user:
+        return jsonify({'message': 'Unauthorized'}), 403
+    
+    try: 
+        db.session.delete(item)
+        db.session.commit()
+
+        # get the updated list without the removed item:
+        updated_packing_list = PackingList.query.get(item.packing_list_id)
+
+        return jsonify({'message': 'Item deleted', 'packing_list': updated_packing_list.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error deleting item', 'error': str(e)}), 500
+    

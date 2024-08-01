@@ -11,7 +11,8 @@ class PackingList(db.Model):
 # Helps with serialization to send data as JSON in API responses.
     def to_dict(self):
         return {
-            'id': self.id,
+            'list_id': self.id,
             'list_name': self.list_name,
+            'user_id': self.user_id,
             'items': [item.to_dict() for item in self.items]
         }
