@@ -89,29 +89,34 @@ def update_list(id):
         packing_list.list_name = list_name
 
     try:
-        # Update items in packing list:
+        # Get current items that are in the packing list:
+        current_items = PackingListItem.query.filter_by(packing_list_id=packing_list.id).all()
+        current_items_dict = {item.id: item for item in current_items}
+
+        updated_item_ids = set()
+
+        # Update items or add a new ones from the request:
         for item_data in items_data:
-            item_id = item_data.get('id')
+            item_id = item_data.get('item_id')
             item_name = item_data.get('item_name')
             quantity = item_data.get('quantity')
             packed_quantity = item_data.get('packed_quantity')
             is_packed = item_data.get('is_packed')
 
-            # Update existing item:
-            if item_id:
-                item = PackingListItem.query.get_or_404(item_id)
-
-                if item.packing_list_id != packing_list.id:
-                    return jsonify({'message': 'Item does not belong to this list'}), 400
+            if item_id and item_id in current_items_dict:
+                # Update existing item:
+                item = current_items_dict[item_id]
                 if item_name is not None:
                     item.item_name = item_name
-                if is_packed is not None:
-                    item.is_packed = is_packed
                 if quantity is not None:
                     item.quantity = quantity
                 if item.packed_quantity is not None:
                     item.packed_quantity = packed_quantity
-            else:
+                if is_packed is not None:
+                    item.is_packed = is_packed
+                updated_item_ids.add(item_id)
+            elif item_id is None:
+                # Create and add new item:
                 new_item = PackingListItem(
                     item_name=item_name,
                     quantity=quantity,
@@ -122,7 +127,10 @@ def update_list(id):
                 db.session.add(new_item)
         
         db.session.commit()
-        return jsonify({'message': 'Packing list updated', 'packing_list': packing_list.to_dict()}), 200
+
+        # Check that the response shows the current state of the list:
+        updated_packing_list = PackingList.query.get(id)
+        return jsonify({'message': 'Packing list updated', 'packing_list': updated_packing_list.to_dict()}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': 'Error updating packing list'}), 500
