@@ -33,6 +33,10 @@ def create_app(test_config=None):
     # app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')  # Change this to a random JWT secret key
 
+    # Access Yelp environment variables:
+    app.config['YELP_API_KEY'] = os.getenv('YELP_API_KEY')
+    app.config['YELP_API_URL'] = os.getenv('YELP_API_URL')
+
 
     db.init_app(app)
     migrate.init_app(app, db)
