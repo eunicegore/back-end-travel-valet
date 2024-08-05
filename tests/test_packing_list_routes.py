@@ -1,6 +1,5 @@
 import pytest
 from app import create_app, db
-from flask_jwt_extended import create_access_token
 
 
 @pytest.fixture(scope="module")
@@ -28,11 +27,12 @@ def auth_user_headers(test_client):
         },
     )
 
-    # Login test user:
+    # Store response of login in a user:
     response = test_client.post(
         "/user/login", json={"username": "testuser", "password": "testpassword"}
     )
 
+    # extract access token from post response 
     access_token = response.json.get("access_token")
     return {"Authorization": f"Bearer {access_token}"}
 
@@ -210,7 +210,7 @@ def test_get_list_by_id(test_client, auth_user_headers):
         "/packing-list",
         json={
             "list_name": "List by ID",
-            "items": [{"item_name": "Shoes", "quantity": 1}],
+            "items": [{"item_name": "Shoes", "quantity": 1}]
         },
         headers=auth_user_headers,
     )
