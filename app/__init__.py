@@ -39,6 +39,7 @@ def create_app(test_config=None):
     jwt.init_app(app)
     cors.init_app(app)
 
+    # Import routes:
     from app.routes.auth_routes import auth
     app.register_blueprint(auth)
     
@@ -48,8 +49,14 @@ def create_app(test_config=None):
     from app.routes.packing_list_routes import packing_list_bp
     app.register_blueprint(packing_list_bp)
 
+    from app.routes.packing_list_item_routes import packing_list_item_bp
+    app.register_blueprint(packing_list_item_bp)
+
+    # Import models:
+    from app.models.user import User
+    from app.models.expense import Expense
+    from app.models.packing_list import PackingList
+    from app.models.packing_list_item import PackingListItem
+
     
     return app
-
-
-
