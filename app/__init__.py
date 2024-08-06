@@ -56,6 +56,9 @@ def create_app(test_config=None):
     from app.routes.packing_list_item_routes import packing_list_item_bp
     app.register_blueprint(packing_list_item_bp)
 
+    from app.routes.dining_routes import dining_routes_bp
+    app.register_blueprint(dining_routes_bp)
+
     # Import models:
     from app.models.user import User
     from app.models.expense import Expense
