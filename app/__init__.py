@@ -37,6 +37,10 @@ def create_app(test_config=None):
     app.config['YELP_API_KEY'] = os.getenv('YELP_API_KEY')
     app.config['YELP_API_URL'] = os.getenv('YELP_API_URL')
 
+    # Access OpenWeather environment variables:
+    app.config['OPENWEATHER_API_KEY'] = os.getenv('OPENWEATHER_API_KEY')
+    app.config['OPENWEATHER_API_URL'] = os.getenv('OPENWEATHER_API_URL')
+
 
     db.init_app(app)
     migrate.init_app(app, db)
