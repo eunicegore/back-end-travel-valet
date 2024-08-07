@@ -37,12 +37,6 @@ def create_app(test_config=None):
     app.config['YELP_API_KEY'] = os.getenv('YELP_API_KEY')
     app.config['YELP_API_URL'] = os.getenv('YELP_API_URL')
 
-    # Access OpenWeather environment variables:
-    app.config['OPENWEATHER_API_KEY'] = os.getenv('OPENWEATHER_API_KEY')
-    app.config['WEATHER_API_URL'] = os.getenv('WEATHER_API_URL')
-    app.config['GEOCODING_API_URL'] = os.getenv('GEOCODING_API_URL')
-    
-
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -65,11 +59,6 @@ def create_app(test_config=None):
     from app.routes.dining_routes import dining_routes_bp
     app.register_blueprint(dining_routes_bp)
 
-    # from app.routes.geocoding_routes import geocoding_routes_bp
-    # app.register_blueprint(geocoding_routes_bp)
-
-    from app.routes.weather_routes import weather_routes_bp
-    app.register_blueprint(weather_routes_bp)
 
     # Import models:
     from app.models.user import User
