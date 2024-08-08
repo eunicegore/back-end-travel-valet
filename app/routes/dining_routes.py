@@ -20,7 +20,7 @@ def dining_recommendations():
     if not city and (not latitude or not longitude):
         return jsonify({'error': 'City or geo location are required'}), 400
 
-    headers = {'Authorization': f'Bearer {current_app.config['YELP_API_KEY']}'}
+    headers = {'Authorization': f"Bearer {current_app.config['YELP_API_KEY']}"}
     params = {
         'term': term,
         # Restricts results to only get restaurants and bars
@@ -37,7 +37,7 @@ def dining_recommendations():
         params['location'] = city
 
     # Construct the full URL for the Yelp request - ("/businesses/search" -- endpoint from Yelp)
-    api_url = f'{current_app.config['YELP_API_URL']}/businesses/search'
+    api_url = f"{current_app.config['YELP_API_URL']}/businesses/search"
 
     response = requests.get(api_url, headers=headers, params=params)
     if response.status_code != 200:
