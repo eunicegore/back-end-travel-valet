@@ -35,6 +35,11 @@ def create_app(test_config=None):
     app.config['OPENWEATHER_API_KEY'] = os.environ.get('OPENWEATHER_API_KEY') 
 
 
+    # Access Yelp environment variables:
+    app.config['YELP_API_KEY'] = os.getenv('YELP_API_KEY')
+    app.config['YELP_API_URL'] = os.getenv('YELP_API_URL')
+
+
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
@@ -55,6 +60,10 @@ def create_app(test_config=None):
 
     from app.routes.weather_routes import weather
     app.register_blueprint(weather)
+
+    from app.routes.dining_routes import dining_routes_bp
+    app.register_blueprint(dining_routes_bp)
+
 
     # Import models:
     from app.models.user import User
