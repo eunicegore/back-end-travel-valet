@@ -17,10 +17,24 @@ def get_weather():
     query = f"{city},{country}" if country else city
     
     openweather_api_key = os.environ.get('OPENWEATHER_API_KEY') 
-    url = f'http://api.openweathermap.org/data/2.5/forecast?q={query}&cnt=7&appid={openweather_api_key}'
-    response = requests.get(url)
 
-    if response.status_code != 200:
-        return jsonify({'error': 'Failed to fetch weather data'}), response.status_code
 
-    return jsonify(response.json())
+    geocoding_url = f'http://api.openweathermap.org/data/2.5/weather?q={query}&appid={openweather_api_key}'
+    geocoding_response = requests.get(geocoding_url)
+
+    if geocoding_response.status_code != 200:
+        return jsonify({'error': 'Failed to fetch city coordinates'}), geocoding_response.status_code
+
+    city_data = geocoding_response.json()
+    lat = city_data['coord']['lat']
+    lon = city_data['coord']['lon']
+
+    forecast_url = f'http://api.openweathermap.org/data/2.5/forecast?q={query}&appid={openweather_api_key}&units=metric'
+    forecast_response = requests.get(forecast_url)
+
+    if forecast_response.status_code != 200:
+        return jsonify({'error': 'Error fetching weather data'}), forecast_response.status_code
+
+    forecast_data = forecast_response.json()
+
+    return jsonify(forecast_data)
