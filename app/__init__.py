@@ -31,7 +31,9 @@ def create_app(test_config=None):
     # app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     #             "SQLALCHEMY_DATABASE_URI")
     # app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')  # Change this to a random JWT secret key
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') 
+    app.config['OPENWEATHER_API_KEY'] = os.environ.get('OPENWEATHER_API_KEY') 
+
 
     # Access Yelp environment variables:
     app.config['YELP_API_KEY'] = os.getenv('YELP_API_KEY')
@@ -55,6 +57,9 @@ def create_app(test_config=None):
 
     from app.routes.packing_list_item_routes import packing_list_item_bp
     app.register_blueprint(packing_list_item_bp)
+
+    from app.routes.weather_routes import weather
+    app.register_blueprint(weather)
 
     from app.routes.dining_routes import dining_routes_bp
     app.register_blueprint(dining_routes_bp)
