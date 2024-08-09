@@ -10,7 +10,6 @@ weather = Blueprint('weather', __name__, url_prefix="")
 @weather.route("/weather", methods=['GET'])
 @jwt_required()
 def get_weather():
-    current_user = get_jwt_identity().get('id')
     city = request.args.get('city')
     country = request.args.get('country')
     if not city:
