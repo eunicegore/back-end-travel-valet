@@ -56,7 +56,9 @@ def get_lists():
     if not lists:
         return jsonify({'message': 'No packing lists found'}), 404
     
-    response_data = [packing_list.to_dict() for packing_list in lists]
+    response_data = {
+        'packingLists': [packing_list.to_dict() for packing_list in lists]}
+    
     return jsonify({'packingLists': response_data}), 200
 
 
@@ -85,7 +87,7 @@ def delete_list(id):
 def update_list(id):
     current_user = get_jwt_identity().get('id')
     data = request.get_json()
-    packing_list = PackingList.query.filter_by(id=id, user_id=current_user).first_or_404
+    packing_list = PackingList.query.filter_by(id=id, user_id=current_user).first_or_404()
 
     list_name = data.get('listName')
     items_data = data.get('items', [])
@@ -95,7 +97,7 @@ def update_list(id):
         packing_list.listName = list_name
 
     try:
-        current_items = Item.query.filter_by(list_id=packing_list.id).all()
+        current_items = Item.query.filter_by(listId=packing_list.id).all()
         current_items_dict = {item.id: item for item in current_items}
 
         updated_item_ids = set()
