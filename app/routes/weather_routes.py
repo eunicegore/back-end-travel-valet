@@ -1,13 +1,16 @@
 from flask import Blueprint, jsonify, request
 from app import db
 from dotenv import load_dotenv
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import os
 import requests
 
-weather = Blueprint('weather', __name__, url_prefix="/destination")
+weather = Blueprint('weather', __name__, url_prefix="")
 
 @weather.route("/weather", methods=['GET'])
+@jwt_required()
 def get_weather():
+    current_user = get_jwt_identity().get('id')
     city = request.args.get('city')
     country = request.args.get('country')
     if not city:
