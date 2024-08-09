@@ -55,8 +55,8 @@ def create_app(test_config=None):
     from app.routes.packing_list_routes import packing_list_bp
     app.register_blueprint(packing_list_bp)
 
-    from app.routes.packing_list_item_routes import packing_list_item_bp
-    app.register_blueprint(packing_list_item_bp)
+    from app.routes.item_routes import item_bp
+    app.register_blueprint(item_bp)
 
     from app.routes.weather_routes import weather
     app.register_blueprint(weather)
@@ -69,7 +69,7 @@ def create_app(test_config=None):
     from app.models.user import User
     from app.models.expense import Expense
     from app.models.packing_list import PackingList
-    from app.models.packing_list_item import PackingListItem
+    from app.models.item import Item
 
     
     return app
