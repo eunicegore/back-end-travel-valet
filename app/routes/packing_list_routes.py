@@ -54,12 +54,11 @@ def get_lists():
     lists = PackingList.query.filter_by(user_id=current_user).all()
 
     if not lists:
-        return jsonify({'message': 'No packing lists found'}), 404
+        return jsonify([]), 200
     
-    response_data = {
-        'packingLists': [packing_list.to_dict() for packing_list in lists]}
+    response_data = [packing_list.to_dict() for packing_list in lists]
     
-    return jsonify({'packingLists': response_data}), 200
+    return jsonify(response_data), 200
 
 
 # Route to Delete a list:
@@ -97,29 +96,15 @@ def update_list(id):
         packing_list.listName = list_name
 
     try:
-        current_items = Item.query.filter_by(listId=packing_list.id).all()
-        current_items_dict = {item.id: item for item in current_items}
-
-        updated_item_ids = set()
-
-        # Update item or add new ones from the request:
+        # Add new items from the request:
         for item_data in items_data:
             item_id = item_data.get('id')
             description = item_data.get('description')
             quantity = item_data.get('quantity')
             packed = item_data.get('packed')
 
-            if item_id and item_id in current_items_dict:
-                # Update existin item:
-                item = current_items_dict[item_id]
-                if description is not None:
-                    item.description = description
-                if quantity is not None:
-                    item.quantity = quantity
-                if packed is not None:
-                    item.packed = packed
-                updated_item_ids.add(item_id)
-            elif item_id is None:
+            if item_id is None:
+                # Add new item:
                 new_item = Item(
                     description=description,
                     quantity=quantity,
@@ -127,15 +112,13 @@ def update_list(id):
                     listId=packing_list.id
                 )
                 db.session.add(new_item)
-
+        
         db.session.commit()
-
         updated_packing_list = PackingList.query.get(id)
-
         return jsonify({'message': 'Packing list updated', 'packing_list': updated_packing_list.to_dict()}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'message': 'Error updating packing list'}), 500
+        return jsonify({'message': 'Error updating itme'}), 500
 
 
 # Route to Get a packing list by ID:

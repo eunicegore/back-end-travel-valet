@@ -80,3 +80,49 @@ def toggle_packed_status(listId, id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': str(e)}), 500
+
+
+# Update one item's description, and quantity:
+@item_bp.route('/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_item(listId, id):
+    current_user = get_jwt_identity().get ('id')
+    item = Item.query.filter_by(id=id, listId=listId).first_or_404()
+
+    # Check if the item belongs to the current user:
+    if item.packing_list.user_id != current_user:
+        return jsonify({'mesage': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    description = data.get('description')
+    quantity = data.get('quantity')
+
+    if description is not None:
+        item.description = description
+    if quantity is not None:
+        item.quantity = quantity
+
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Item updated', 'item': item.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error updating item', 'error': str(e)}), 500
+    
+
+# Delete all items in a list:
+@item_bp.route('', methods=['DELETE'])
+@jwt_required()
+def delete_all_items(listId):
+    current_user = get_jwt_identity().get('id')
+    packing_list = PackingList.query.filter_by(id=listId, user_id=current_user).first_or_404()
+
+    try:
+        Item.query.filter_by(listId=listId).delete()
+        db.session.commit()
+
+        return jsonify({'message': 'All items deleted from list', 'packing_list': packing_list.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error deleting items', 'error': str(e)}), 500
+    
