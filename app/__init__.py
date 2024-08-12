@@ -17,7 +17,8 @@ load_dotenv()
 
 def create_app(test_config=None):
     app = Flask(__name__)
-    CORS(app)  # Allow cross-origin requests
+    CORS(app)  # Allow cross-origin requests.
+    # CORS(app, resources={r"/*": {"origins": "*"}})  # Allow cross-origin requests. Allows all origins.
 
     if not test_config:
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

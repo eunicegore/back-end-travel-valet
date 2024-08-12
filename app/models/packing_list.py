@@ -18,3 +18,4 @@ class PackingList(db.Model):
             'dateSaved': self.dateSaved.strftime('%Y-%m-%d'),
             'items': [item.to_dict() for item in self.items]
         }
+        
