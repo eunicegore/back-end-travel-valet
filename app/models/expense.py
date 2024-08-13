@@ -16,7 +16,7 @@ class Expense(db.Model):
             "amount": self.amount,
             "description": self.description,
             "user_id": self.user_id,
-            "date": self.date.strftime('%b/%d/%y'),
+            "date": self.date.strftime('%Y-%m-%d'),
             "category": self.category
             
         }

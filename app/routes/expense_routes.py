@@ -56,7 +56,7 @@ def get_expenses():
         'amount': expense.amount,
         'description': expense.description,
         'category': expense.category,
-        'date': expense.date
+        'date': expense.date.strftime('%Y-%m-%d')
     } for expense in expenses])
 
 @expense.route('/<id>', methods=['DELETE'])
@@ -82,7 +82,7 @@ def update_expense(id):
     expense.amount = data['amount']
     expense.description = data['description']
     expense.category = data['category']
-    expense.date = data['date']
+    expense.date = datetime.strptime(data['date'], '%Y-%m-%d')
     db.session.commit()
     return jsonify({'message': 'Expense updated!'})
     # return jsonify(expense.to_dict()), 201
