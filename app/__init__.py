@@ -20,6 +20,7 @@ def create_app(test_config=None):
     logging.debug("Starting application")
 
     app = Flask(__name__)
+    CORS(app)
 
     # Configure app settings:
     if not test_config:
