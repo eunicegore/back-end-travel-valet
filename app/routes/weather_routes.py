@@ -8,7 +8,7 @@ import requests
 weather = Blueprint('weather', __name__, url_prefix="")
 
 @weather.route("/weather", methods=['GET'])
-@jwt_required()
+# @jwt_required()
 def get_weather():
     city = request.args.get('city')
     country = request.args.get('country')
