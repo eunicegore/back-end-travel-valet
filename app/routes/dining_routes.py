@@ -7,7 +7,7 @@ import logging
 dining_routes_bp = Blueprint('dining_routes', __name__)
 
 @dining_routes_bp.route('/recommendations', methods=['GET'])
-# @jwt_required()     # Requires a valid JWT token to access this route
+@jwt_required()     # Requires a valid JWT token to access this route
 def dining_recommendations():
     # Retrieve query parameters from user input:
     location = request.args.get('city')
