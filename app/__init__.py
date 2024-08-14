@@ -20,7 +20,12 @@ def create_app(test_config=None):
     logging.debug("Starting application")
 
     app = Flask(__name__)
-    CORS(app)
+
+    # Defined allowed oirgins:
+    allowed_origins = [ "https://travel-valet.onrender.com" ]
+    
+    # Initialize CORS with allowed origin:
+    CORS(app, resources={r"/*":{"origins": allowed_origins}})
 
     # Configure app settings:
     if not test_config:
