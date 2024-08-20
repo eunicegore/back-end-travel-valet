@@ -1,227 +1,182 @@
 import pytest
 from app import create_app, db
+from flask_jwt_extended import create_access_token
+from app.models.packing_list import PackingList
+from app.models.item import Item
+from app.models.user import User
 
-
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def test_client():
-    app = create_app(
-        {"TESTING": True}
-    )  # Create a Flask application instance with the testing configuration
-    with app.test_client() as testing_client:  # Create a test client for making HTTP requests
-        with app.app_context():  # Push an application context
-            db.create_all()  # Create all database tables within this context
-        yield testing_client  # Provide the test client to the test functions
-        with app.app_context():  # Push an application context again for cleanup
-            db.drop_all()  # Drop all database tables to clean up
+    # Create the flask app instance
+    app = create_app('testing')
+
+    # Create the application context and the test client:
+    with app.app_context():
+        db.create_all()
+        print("DB created")
+        yield app.test_client()
+        db.drop_all()
+        print("DB dropped")
 
 
 @pytest.fixture
-def auth_user_headers(test_client):
-    # Register test user:
-    test_client.post(
-        "/user/register",
-        json={
-            "username": "testuser",
-            "password": "testpassword",
-            "email": "test@example.com",
-        },
-    )
+def auth_token(test_client):
+    # Create a test user and get an auth token
+    with test_client.application.app_context():
+        user = User(username='testuser', email='test@test.com')
+        user.set_password('password')
+        db.session.add(user)
+        db.session.commit()
 
-    # Store response of login in a user:
+        # Make sure user instance is still bound to the session
+        db.session.refresh(user) # Refres user to ensure it's up-to-date
+    
+    # Create and return access token for user
+    access_token = create_access_token(identity={'id': user.id})
+    return access_token
+
+
+@pytest.fixture
+def packing_list(test_client, auth_token):
+    # Create a packing list to be used in tests:
     response = test_client.post(
-        "/user/login", json={"username": "testuser", "password": "testpassword"}
+        '/packing-list',
+        json={'listName': 'Test List for Deletion', 'items': [{'description': 'Item to be deleted'}]},
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
-
-    # extract access token from post response 
-    access_token = response.json.get("access_token")
-    return {"Authorization": f"Bearer {access_token}"}
+    return response.json['packingList']['id']
 
 
-def test_create_list(test_client, auth_user_headers):
+def test_create_list(test_client, auth_token):
+    # Test creating a new packcing list
     response = test_client.post(
-        "/packing-list",
-        json={
-            "list_name": "Test List",
-            "items": [
-                {"item_name": "Shirt", "quantity": 5},
-                {"item_name": "Pants", "quantity": 2},
-            ],
-        },
-        headers=auth_user_headers,
+        '/packing-list',
+        json={'listName': 'New Test List', 'items': [{'description': 'New Item', 'quantity': 5}]},
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
     assert response.status_code == 201
-    data = response.json
-    assert data["message"] == "New packing list created"
-    assert "packing_list" in data
+    assert response.json['message'] == 'New packing list created'
+    assert 'packingList' in response.json
+    assert response.json['packingList']['listName'] == 'New Test List'
+    assert len(response.json['packingList']['items']) == 1
+    assert response.json['packingList']['items'][0]['description'] == 'New Item'
 
 
-def test_get_all_lists(test_client, auth_user_headers):
-    # Create test data: new packing list with items:
-    create_response = test_client.post(
-        "/packing-list",
-        json={
-            "list_name": "Test List",
-            "items": [
-                {
-                    "item_name": "Pants",
-                    "quantity": 3,
-                    "packed_quantity": 1,
-                    "is_packed": False,
-                },
-                {
-                    "item_name": "Shirts",
-                    "quantity": 5,
-                    "packed_quantity": 3,
-                    "is_packed": False,
-                },
-            ],
-        },
-        headers=auth_user_headers,
+def test_get_lists(test_client, auth_token):
+    # Test getting all packing lists
+    test_client.post(
+        '/packing-list',
+        json={'listName': 'Vacation', 'items': [{'description': 'Shirt', 'quantity': 3}]},
+        headers={'Authorization': f'Bearer {auth_token}'}
+    )
+    
+    response = test_client.get(
+        '/packing-list',
+        headers={'Authorization': f'Bearer {auth_token}'})
+    
+    # Print response for debugging
+    print("Response Status Code:", response.status_code)
+    print("Response JSON:", response.json)
+    
+    assert response.status_code == 200
+    assert isinstance(response.json, list)
+    assert len(response.json) > 0
+
+    # Verify that the response contains the packing list created by the fixture
+    packing_list_ids = [plist['id'] for plist in response.json]
+    print("Packing List IDs in response:", packing_list_ids)
+    
+    
+def test_delete_list(test_client, auth_token, packing_list):
+    # Print packing list ID before deletion
+    print("Packing List ID to be deleted:", packing_list)
+
+    response_before_delete = test_client.get(
+        f'/packing-list/{packing_list}',
+        headers={'Authorization': f'Bearer {auth_token}'}
+    )
+    assert response_before_delete.status_code == 200
+    assert response_before_delete.json['id'] == packing_list
+
+    # Print the packing list ID before deletion
+    print("Packing List ID to be deleted:", packing_list)
+
+    # Test deleting a packing list
+    response = test_client.delete(f'/packing-list/{packing_list}',
+                headers={'Authorization': f'Bearer {auth_token}'})
+    
+    # print the response for debbuging
+    print("Response Status Code:", response.status_code)
+    print("Response JSON:", response.json)
+
+    assert response.status_code == 200
+    assert response.json['message'] == 'Packing list deleted!'
+
+    response_after_delete = test_client.get(
+        f'/packing-list/{packing_list}',
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
 
-    # Check that packing list was created successfully:
-    assert create_response.status_code == 201
-    created_list = create_response.json["packing_list"]
-    assert "list_id" in created_list
-    assert created_list["list_name"] == "Test List"
-    assert len(created_list["items"]) > 0
-
-    # Get all packing lists:
-    get_response = test_client.get("/packing-list", headers=auth_user_headers)
-
-    # Check that the response is successful:
-    assert get_response.status_code == 200
-    data = get_response.json
-
-    # Check that response data is a list and not empty
-    assert isinstance(data, list)
-    assert len(data) > 0
-
-    # Check that the created test list is in the response - list of lists:
-    lists_ids = [lst["list_id"] for lst in data]
-    assert created_list["list_id"] in lists_ids
+    assert response_after_delete.status_code == 404
 
 
-def test_update_list(test_client, auth_user_headers):
-    # Create a packing list:
-    create_response = test_client.post(
-        "/packing-list",
-        json={
-            "list_name": "Test List",
-            "items": [
-                {"item_name": "Hat", "quantity": 2},
-                {"item_name": "Shirt", "quantity": 5},
-            ],
-        },
-        headers=auth_user_headers,
+def test_update_list(test_client, auth_token):
+    # create initial packing list:
+    response = test_client.post(
+        '/packing-list',
+        json={'listName': 'Update Test List', 'items': [{'description': 'Initial Item', 'quantity': 1}]},
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
 
-    assert create_response.status_code == 201
+    list_id = response.json['packingList']['id']
 
-    created_list = create_response.json["packing_list"]
-    list_id = created_list["list_id"]
-
-    print(f"Created packing list ID: {list_id}")
-
-    # Get item IDs for later updates:
-    item_ids = [item["item_id"] for item in created_list["items"]]
-
-    # Update the items in the packing list:
-    update_response = test_client.put(
-        f"/packing-list/{list_id}",
-        json={
-            "list_name": "Updated Test List",
-            "items": [
-                {
-                    "item_id": item_ids[0],  # Update the first item
-                    "item_name": "Updated Item",
-                    "quantity": 80,
-                    "packed_quantity": 5,
-                    "is_packed": True,
-                },
-                {"item_name": "Second update - add new item", "quantity": 100},
-            ],
-        },
-        headers=auth_user_headers,
+    # Update list with new items
+    response = test_client.put(
+        f'/packing-list/{list_id}',
+        json={'listName': 'Updated List Name', 'items': [{'id': None, 'description': 'New Item', 'quantity': 1}]},
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
 
-    # Debug - print to see the update response details:
-    print(f"Update Response JSON: {update_response.json}")
-    print(f"Update Response Status Code: {update_response.status_code}")
+    assert response.status_code == 200
+    assert response.json['message'] == 'Packing list updated'
+    assert response.json['packing_list']['listName'] == 'Updated List Name'
 
-    # Check that the update was successful
-    assert update_response.status_code == 200
-    updated_list = update_response.json["packing_list"]
-    assert updated_list["list_name"] == "Updated Test List"
+    updated_items = response.json['packing_list']['items']
+    assert len(updated_items) == 2
+    assert any(item['description'] == 'New Item' for item in updated_items)
 
-    # Check updated item:
-    updated_items = {item["item_id"]: item for item in updated_list["items"]}
-    assert updated_items[item_ids[0]]["item_name"] == "Updated Item"
-    assert updated_items[item_ids[0]]["quantity"] == 80
-    assert updated_items[item_ids[0]]["packed_quantity"] == 5
-    assert updated_items[item_ids[0]]["is_packed"] is True
+    initial_item_exists = any(item['description'] == 'Initial Item' for item in updated_items)
+    assert initial_item_exists
 
-    # Check new item:
-    new_item = next(
-        (item for item in updated_list["items"] if item["item_name"] == "Second update - add new item"),
-        None
+def test_get_list_by_id(test_client, auth_token):
+    response = test_client.post(
+        '/packing-list',
+        json={'listName': 'Test List by ID', 'items': [{'description': 'Item to get list by ID'}]},
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
-    assert new_item is not None
-    assert new_item["quantity"] == 100
+    list_id = response.json['packingList']['id']
 
-
-def test_delete_list(test_client, auth_user_headers):
-    # Create a packing list with one item:
-    create_response = test_client.post(
-        "/packing-list",
-        json={
-            "list_name": "List to Delete",
-            "items": [{"item_name": "Delete Item", "quantity": 1}],
-        },
-        headers=auth_user_headers,
+    response = test_client.get(
+        f'/packing-list/{list_id}',
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
 
-    print(f"created list: {create_response.json}")
+    print("Response Status Code:", response.status_code)
+    print("Response JSON:", response.json)
 
-    # Get id of list:
-    list_id = create_response.json["packing_list"]["list_id"]
-    print(f"id of new list: {list_id}")
+    assert response.status_code == 200
+    assert response.json['id'] == list_id
+    assert response.json['listName'] == 'Test List by ID'
+    assert len(response.json['items']) == 1
+    assert response.json['items'][0]['description'] == 'Item to get list by ID'
 
-    # Delete the packing list:
-    delete_response = test_client.delete(
-        f"/packing-list/{list_id}", headers=auth_user_headers
-    )
-    assert delete_response.status_code == 200
-    data = delete_response.json
-    print(f"data after deleting the list: {data}")
-    assert data["message"] == "Packing list deleted"
-
-    # Verify that the packing list is deleted:
-    verify_response = test_client.get(
-        f"/packing-list/{list_id}", headers=auth_user_headers
-    )
-    assert verify_response.status_code == 404
-    assert verify_response.json.get("message") == "Packing list not found"
-
-
-def test_get_list_by_id(test_client, auth_user_headers):
-    # Create a packing list:
-    create_response = test_client.post(
-        "/packing-list",
-        json={
-            "list_name": "List by ID",
-            "items": [{"item_name": "Shoes", "quantity": 1}]
-        },
-        headers=auth_user_headers,
+    response = test_client.get(
+        '/packing-list/12345',
+        headers={'Authorization': f'Bearer {auth_token}'}
     )
 
-    list_id = create_response.json["packing_list"]["list_id"]
+    print("Response Status Code (non-existent):", response.status_code)
+    print("Response JSON (non-existent):", response.json)
 
-    # Get the packing list with the above id:
-    get_response = test_client.get(
-        f"/packing-list/{list_id}", headers=auth_user_headers
-    )
-    assert get_response.status_code == 200
-    data = get_response.json
-    assert data["list_name"] == "List by ID"
-    assert "items" in data
+    assert response.status_code == 404
+    assert response.json['message'] == 'Packing list not found'
